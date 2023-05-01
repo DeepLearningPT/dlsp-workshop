@@ -1,0 +1,3 @@
+,block_position,block_dimensions,fluid_volume,block_velocity,block_velocity_magnitude,kinematic_viscosity,density,tank_dimensions,time_max,time_step,particle_radius,number_of_fluid_particles,simulation_directory
+0,"[0.23, 0.112, 0.098]","[0.127, 0.793, 0.478]",0.048139858,"[-0.966, -0.791, -0.807]",1.4866357993806014,1e-06,1000.0,"[1.0, 1.0, 1.0]",3.0,0.005,0.0125,1530,sim_0001
+1,"[0.4, 0.158, 0.424]","[0.562, 0.206, 0.515]",0.05962258,"[-0.711, 0.892, 1.058]",1.5558113638870235,1e-06,1000.0,"[1.0, 1.0, 1.0]",3.0,0.005,0.0125,2280,sim_0000
