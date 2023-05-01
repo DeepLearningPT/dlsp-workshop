@@ -8,7 +8,7 @@ from torch_geometric.data import Data
 def make_graph_edges_from_particle_positions(particle_positions,
                                              connectivity_radius):
     """Makes undirected edges between particles with distance equal
-    or less than the connectivity radiius.
+    or less than the connectivity radius.
 
     Args:
 
@@ -87,8 +87,9 @@ def make_graph_node_features(particle_velocities, particle_positions,
                              cube_wall_positions):
     """Args:
 
-    particle_velocities: List of [(t, 3)]. That is, a list with the
-    velocities at the last t time steps.
+    particle_velocities: A list of tuples with the velocities at the
+    last t time steps.
+
 
     particle_positions: The positions of the nodes. That is, a list
     [(x, y, z)]
@@ -110,7 +111,7 @@ def make_graphs_from_simulation_data(simulation_data, cube_wall_positions,
     simualtion_data: Numpy arra with shape [time_steps, 6, num_particles]
 
     
-    cube_all_positions: A list of size 6 containing the position of
+    cube_wall_positions: A list of size 6 containing the position of
     the 6 walls of the cube. [x_front, x_back, y_left, y_right, z_top,
     z_bottom]
 
@@ -119,13 +120,14 @@ def make_graphs_from_simulation_data(simulation_data, cube_wall_positions,
     connectivity_radius: The radius to use for the connectivity
 
     time_between_steps: The time between simulation intervals
+
     """
     # Creates a lsit with [(time_step_0, ...,
     # time_stpe_past_context+1), (time_step_1, ...,
     # time_step_past_context + 2), ...]. Where each time step has
     # shape [6, num_particles]. The last element in the tuples
-    # corresponds to the next time step used to compute the accelarion
-    # target.
+    # corresponds to the next time step used to compute the
+    # accelaration target.
     time_steps_to_zip = [simulation_data[i + 1:] for i in range(past_context)]
     time_steps_to_zip = list(zip(*time_steps_to_zip))
 
