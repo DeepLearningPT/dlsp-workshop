@@ -30,7 +30,7 @@ def main(_):
     if not os.path.exists(FLAGS.output_path):
         os.makedirs(FLAGS.output_path)
 
-    for id in FLAGS.sims_to_read:
+    for id in map(int, FLAGS.sims_to_read):
         data = simulation.read_simulation(FLAGS.path_to_simulation_data, id)
 
         # Make and save the graphs:
@@ -39,11 +39,9 @@ def main(_):
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
 
-        simulation.graphs_from_simulation_data(data, [0, 1, 0, 1, 0, 1],
-                                               FLAGS.context_size,
-                                               FLAGS.connectivity_radius,
-                                               save_dir,
-                                               FLAGS.time_between_time_steps)
+        simulation.make_graphs_from_simulation_data(
+            data, [0, 1, 0, 1, 0, 1], FLAGS.context_size,
+            FLAGS.connectivity_radius, save_dir, FLAGS.time_between_time_steps)
 
 
 if __name__ == '__main__':
