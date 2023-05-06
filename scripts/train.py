@@ -38,7 +38,7 @@ def main(_):
 
     # TODO(Pedro): Insert the code for the model here
     model = None
-    lightning_wrapper = simulation_lightning_wrapper.GraphWrapper(
+    lightning_wrapper = simulation.lightning_wrapper.GraphWrapper(
         model, batch_size=FLAGS.batch_size, learning_rate=FLAGS.learning_rate)
 
     accelerator = 'gpu' if FLAGS.use_gpu else 'cpu'

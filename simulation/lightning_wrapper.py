@@ -39,3 +39,7 @@ class GraphWrapper(pl.LightningModule):
         input_graph, target = batch
         preds = self.model(input_graph)
         return torch.nn.functional.mse_loss(preds, target)
+
+    def configure_optimizers(self):
+        """Wrap the optimizer into a pl optimizer. """
+        return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
