@@ -36,10 +36,6 @@ def main(_):
                                        batch_size=FLAGS.batch_size,
                                        shuffle=False)
 
-    for batch in train_dataloader:
-        print(batch)
-        break
-
     # TODO(Pedro): Insert the code for the model here
     model = None
     lightning_wrapper = simulation_lightning_wrapper.GraphWrapper(

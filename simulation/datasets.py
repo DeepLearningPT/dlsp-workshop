@@ -21,6 +21,7 @@ class SimulationDataset(Dataset):
     """
 
     def __init__(self, data_dir):
+        super().__init__(None, None, None)
         # Creates a list with all paths to graphs and targets
         self.graph_and_target_paths = []
         for sim_dir in os.listdir(data_dir):
