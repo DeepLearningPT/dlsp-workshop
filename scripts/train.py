@@ -16,9 +16,7 @@ flags.DEFINE_integer('batch_size', 32, 'Batch size')
 flags.DEFINE_integer('max_epochs', 10, 'Number of epochs')
 flags.DEFINE_float('learning_rate', 0.001, 'Learning rate')
 
-flags.DEFINE_boolean('use_gpu', True, 'Use GPU')
-
-flags.DEFINE_float('train_split', 0.9, 'Train split')
+flags.DEFINE_enum('accelerator', 'gpu', ['gpu', 'cpu'], 'Accelerator')
 
 flags.DEFINE_integer('random_seed', 42, 'Random seed')
 
@@ -41,8 +39,8 @@ def main(_):
     lightning_wrapper = simulation.lightning_wrapper.GraphWrapper(
         model, batch_size=FLAGS.batch_size, learning_rate=FLAGS.learning_rate)
 
-    accelerator = 'gpu' if FLAGS.use_gpu else 'cpu'
-    trainer = pl.Trainer(max_epochs=FLAGS.max_epochs, accelerator=accelerator)
+    trainer = pl.Trainer(max_epochs=FLAGS.max_epochs,
+                         accelerator=FLAGS.accelerator)
 
     trainer.fit(lightning_wrapper, train_dataloader, validation_dataloader)
 
