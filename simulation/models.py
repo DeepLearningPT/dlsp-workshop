@@ -26,12 +26,11 @@ class MLP(torch.nn.Module):
         super().__init__()
 
         self._hidden_layers = [
-            torch.nn.LazyLinear(n_hidden_layers)
-            for _ in range(n_hidden_layers)
+            torch.nn.LazyLinear(hidden_size) for _ in range(n_hidden_layers)
         ]
         self._activations = [torch.nn.ReLU() for _ in range(n_hidden_layers)]
 
-        self._out_layer = torch.nn.Linear(hidden_size, out_size)
+        self._out_layer = torch.nn.LazyLinear(out_size)
 
     def forward(self, *args: torch.Tensor):
         """Forward pass of the MLP.
@@ -96,7 +95,7 @@ class Encoder(torch.nn.Module):
               latent embeddings of the edges of the graph."""
 
         node_embeddings = self._nodes_mlp(node_features)
-        edge_embeddings = self._edge_mlp(edge_features)
+        edge_embeddings = self._edges_mlp(edge_features)
 
         return node_embeddings, edge_embeddings
 
