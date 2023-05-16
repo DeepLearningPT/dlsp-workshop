@@ -1,4 +1,4 @@
-"""Graph Network Simulator and its building blocks."""
+"""Building blocks of Graph Network Simulator."""
 
 from typing import Tuple
 
@@ -32,7 +32,7 @@ class MLP(torch.nn.Module):
 
         self._out_layer = torch.nn.LazyLinear(out_size)
 
-    def forward(self, *args: torch.Tensor):
+    def forward(self, *args: torch.Tensor) -> torch.Tensor:
         """Forward pass of the MLP.
         
         Args:
@@ -79,7 +79,7 @@ class Encoder(torch.nn.Module):
         self._edges_mlp = MLP(n_hidden_layers, hidden_size, latent_size)
 
     def forward(self, node_features: torch.Tensor,
-                edge_features: torch.Tensor) -> Tuple(torch.Tensor):
+                edge_features: torch.Tensor) -> Tuple[torch.Tensor]:
         """Forward pass of the Encoder layer.
         
         Args:
@@ -136,5 +136,170 @@ class Decoder(torch.nn.Module):
         return accelerations
 
 
-class Processor(torch_geometric.nn.MessagePasssing):
-    """Processor layer of the Graph Network Simulator."""
+class Processor(torch_geometric.nn.conv.MessagePassing):
+    """Processor layer of the Encoder-Processor-Decoder.
+    
+    The Processor updates nodes and edges by applying MLPs as functions of the 
+    nodes and edges themselves and the others to whom they are connected, thus 
+    alowing information to be propagated between nodes via the edges in the form
+    of message-passing.
+
+    Args:
+        n_hidden_layers: Number of hidden layers of the two MLPs.
+        hidden_size: Size of the hidden layers of the two MLPs.
+        latent_size: Size of the latent embeddings of the nodes and edges, i.e. 
+          the output size of the MLPs.
+        aggr: The aggregation scheme to use, e.g., "add", "sum", "mean", "min", 
+          "max" or "mul"."""
+
+    # pylint: disable=arguments-differ, arguments-renamed, abstract-method
+
+    def __init__(self,
+                 n_hidden_layers: int,
+                 hidden_size: int,
+                 latent_size: int,
+                 aggr: str = "add") -> None:
+        """Initializes a Processor object."""
+
+        super().__init__(aggr=aggr)
+
+        self._nodes_mlp = MLP(n_hidden_layers, hidden_size, latent_size)
+        self._edges_mlp = MLP(n_hidden_layers, hidden_size, latent_size)
+
+    def forward(self, node_embeddings: torch.Tensor,
+                edge_embeddings: torch.Tensor,
+                edge_index: torch.Tensor) -> Tuple[torch.Tensor]:
+        """The forward pass of the Processor.
+               
+        Args:
+            node_embeddings: Tensor of shape (n_nodes, latent_size) with the
+              latent embeddings of the nodes of the graph.
+            edge_embeddings: Tensor of shape (n_edges, latent_size) with the
+              latent embeddings of the edges of the graph.
+            edge_index: Tensor of shape (2, n_edges) with the indices of the 
+              nodes each edge connects, i.e. the adjacency matrix of the graph.
+              
+        Returns:
+            node_embeddings: Tensor of shape (n_nodes, latent_size) with the
+              latent embeddings of the nodes of the graph after message-passing.
+            edge_embeddings: Tensor of shape (n_edges, latent_size) with the
+              latent embeddings of the edges of the graph after message-passing.
+        """
+
+        edge_embeddings = self.edge_updater(edge_index=edge_index,
+                                            node_embeddings=node_embeddings,
+                                            edge_embeddings=edge_embeddings)
+
+        node_embeddings = self.propagate(edge_index=edge_index,
+                                         node_embeddings=node_embeddings,
+                                         edge_embeddings=edge_embeddings)
+
+        return node_embeddings, edge_embeddings
+
+    def edge_update(self, node_embeddings_i: torch.Tensor,
+                    node_embeddings_j: torch.Tensor,
+                    edge_embeddings: torch.Tensor) -> torch.Tensor:
+        """Updates the edges.
+        
+        Args:
+            node_embeddings_i: Tensor of shape (n_edges, latent_size) with the 
+             embeddings of the sender node for each edge.
+            node_embeddings_j: Tensor of shape (n_edges, latent_size) with the 
+             embeddings of the receiver node for each edge.
+            edge_embeddings: Tensor of shape (n_edges, latent_size) with the
+             latent embeddings of the edges themselves.
+
+        Returns:
+            edge_embeddings: Tensor of shape (n_edges, latent_size) with the
+             latent embeddings of the edges after being updated."""
+
+        return self._edges_mlp(node_embeddings_i, node_embeddings_j,
+                               edge_embeddings)
+
+    def message(self, edge_embeddings: torch.Tensor) -> torch.Tensor:
+        """Computes the messages to be sent via each edge from the sender to the
+        receiver node. In this case, the messages are the upddated edges.
+        
+        Args:
+            edge_embeddings: Tensor of shape (n_edges, latent_size) with the 
+              edges previously updated by `edge_update`.
+              
+        Returns:
+            edge_embeddings: Tensor of shape (n_edges, latent_size) with the 
+              edges previously updated by `edge_update`, which are themselves 
+              the messages to be sent from one node to the other."""
+
+        return edge_embeddings
+
+    def update(self, aggregated_messages: torch.Tensor,
+               node_embeddings: torch.Tensor) -> torch.Tensor:
+        """Updates the nodes."""
+        return self._nodes_mlp(node_embeddings, aggregated_messages)
+
+
+class EncoderProcessorDecoder(torch.nn.Module):
+    """Encoder-Processor-Decoder model.
+    
+    Args:
+        n_processors: Number of message-passing layers in the Processor.
+        n_hidden_layers: Number of hidden layers of all MLPs in all layers.
+        hidden_size: Size of the hidden layers of all MLPs in all layers.
+        latent_size: Size of the latent embeddings of the nodes and edges, i.e. 
+          the output size of the MLPs.
+        aggr: The aggregation scheme to use in the message-passing steps of the 
+          Processor. Can be "add", "sum", "mean", "min", "max" or "mul"."""
+
+    def __init__(self,
+                 n_processors: int,
+                 n_hidden_layers: int,
+                 hidden_size: int,
+                 latent_size: int,
+                 aggr: str = "add") -> None:
+        """Initializes a EncoderProcessorDecoder model."""
+        super().__init__()
+
+        self._encoder = Encoder(n_hidden_layers, hidden_size, latent_size)
+        self._decoder = Decoder(n_hidden_layers, hidden_size)
+
+        self._processor = []
+        for _ in range(n_processors):
+            self._processor.append(
+                Processor(n_hidden_layers, hidden_size, latent_size, aggr))
+
+    def forward(self, node_features: torch.Tensor, edge_features: torch.Tensor,
+                edge_index: torch.Tensor) -> torch.Tensor:
+        """Forward pass of the Encoder-Processor-Decoder.
+        
+        Args:
+            node_features: Tensor of shape (n_nodes, n_node_features) with the
+                features of the nodes of the graph.
+            edge_features: Tensor of shape (n_edges, n_edge_features) with the
+                features of the edges of the graph.
+            edge_index: Tensor of shape (2, n_edges) with the indices of the 
+                nodes each edge connects, i.e. the adjacency matrix of the 
+                graph.
+
+        Returns:
+            accelerations: Tensor of shape (n_nodes, 3) with the three predicted
+              components of acceleration for each node, i.e. particle.
+            """
+
+        node_features, edge_features = self._encoder(node_features,
+                                                     edge_features)
+
+        for processor in self._processor:
+            processed_nodes, processed_edges = processor(
+                node_features, edge_features, edge_index)
+
+            # Skip connections
+            node_features = node_features + processed_nodes
+            edge_features = edge_features + processed_edges
+
+        accelerations = self._decoder(node_features)
+
+        return accelerations
+
+
+class GraphNetworkSimulator:
+    """The Graph Network Simulator."""
+    # TODO
