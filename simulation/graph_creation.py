@@ -149,9 +149,9 @@ def make_graphs_from_simulation_data(simulation_data, cube_wall_positions,
                                             particle_positions,
                                             cube_wall_positions)
 
-        data = Data(x=torch.tensor(features),
+        data = Data(x=torch.tensor(features, dtype=torch.float32),
                     edge_index=torch.tensor(edges),
-                    edge_attr=edge_features)
+                    edge_attr=torch.tensor(edge_features, dtype=torch.float32))
 
         # Computing the target
         current_velocities = particle_velocities[:, -1:].reshape(
@@ -160,5 +160,5 @@ def make_graphs_from_simulation_data(simulation_data, cube_wall_positions,
         acc = (next_velocities - current_velocities) / time_between_steps
 
         # save the graph to disk
-        torch.save([data, torch.tensor(acc)],
+        torch.save([data, torch.tensor(acc, dtype=torch.float32)],
                    os.path.join(save_dir, f'graph_and_target_{graph_num}.pt'))

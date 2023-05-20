@@ -35,5 +35,5 @@ class SimulationDataset(Dataset):
 
     def get(self, idx):
         graph_and_target_path = self.graph_and_target_paths[idx]
-        graph_and_target = torch.load(graph_and_target_path)
-        return graph_and_target
+        graph, target = torch.load(graph_and_target_path)
+        return graph, target

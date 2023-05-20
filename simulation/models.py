@@ -25,12 +25,11 @@ class MLP(torch.nn.Module):
 
         super().__init__()
 
-        self._hidden_layers = [
-            torch.nn.LazyLinear(hidden_size) for _ in range(n_hidden_layers)
-        ]
-        self._activations = [torch.nn.ReLU() for _ in range(n_hidden_layers)]
-
-        self._out_layer = torch.nn.LazyLinear(out_size)
+        self._sequential = torch.nn.Sequential()
+        for _ in range(n_hidden_layers):
+            self._sequential.append(torch.nn.LazyLinear(hidden_size))
+            self._sequential.append(torch.nn.ReLU())
+        self._sequential.append(torch.nn.LazyLinear(out_size))
 
     def forward(self, *args: torch.Tensor) -> torch.Tensor:
         """Forward pass of the MLP.
@@ -46,14 +45,7 @@ class MLP(torch.nn.Module):
             (batch, out_size)."""
 
         out = torch.cat(args, dim=-1)
-
-        for layer, activation in zip(self._hidden_layers, self._activations):
-            out = layer(out)
-            out = activation(out)
-
-        out = self._out_layer(out)
-
-        return out
+        return self._sequential(out)
 
 
 class Encoder(torch.nn.Module):
@@ -261,7 +253,7 @@ class EncoderProcessorDecoder(torch.nn.Module):
         self._encoder = Encoder(n_hidden_layers, hidden_size, latent_size)
         self._decoder = Decoder(n_hidden_layers, hidden_size)
 
-        self._processor = []
+        self._processor = torch.nn.Sequential()
         for _ in range(n_processors):
             self._processor.append(
                 Processor(n_hidden_layers, hidden_size, latent_size, aggr))
