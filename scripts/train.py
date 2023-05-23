@@ -1,4 +1,6 @@
 """Trains the model"""
+import random
+
 from absl import app
 from absl import flags
 
@@ -16,12 +18,21 @@ flags.DEFINE_integer('batch_size', 32, 'Batch size')
 flags.DEFINE_integer('max_epochs', 10, 'Number of epochs')
 flags.DEFINE_float('learning_rate', 0.001, 'Learning rate')
 
+flags.DEFINE_integer('n_processors', 1, 'Number of processors in the model')
+flags.DEFINE_integer('n_hidden_layers', 1, 'Number of hidden layers')
+flags.DEFINE_integer('hidden_size', 32, 'Size of the hidden layers')
+flags.DEFINE_integer('latent_size', 32, 'Size of the latent space')
+flags.DEFINE_enum('aggr', 'add', ['add', 'mean', 'max'], 'Aggregation method')
+
 flags.DEFINE_enum('accelerator', 'gpu', ['gpu', 'cpu'], 'Accelerator')
 
-flags.DEFINE_integer('random_seed', 42, 'Random seed')
+flags.DEFINE_integer('random_seed', None, 'Random seed')
 
 
 def main(_):
+    if FLAGS.random_seed is not None:
+        random.seed(FLAGS.random_seed)
+
     train_dataset = simulation.datasets.SimulationDataset(FLAGS.train_data)
     validation_dataset = simulation.datasets.SimulationDataset(
         FLAGS.validation_data)
@@ -34,8 +45,12 @@ def main(_):
                                        batch_size=FLAGS.batch_size,
                                        shuffle=False)
 
-    # TODO(Pedro): Insert the code for the model here
-    model = None
+    model = simulation.models.EncoderProcessorDecoder(FLAGS.n_processors,
+                                                      FLAGS.n_hidden_layers,
+                                                      FLAGS.hidden_size,
+                                                      FLAGS.latent_size,
+                                                      FLAGS.aggr)
+
     lightning_wrapper = simulation.lightning_wrapper.GraphWrapper(
         model, batch_size=FLAGS.batch_size, learning_rate=FLAGS.learning_rate)
 

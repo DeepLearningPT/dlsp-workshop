@@ -7,7 +7,6 @@ class GraphWrapper(pl.LightningModule):
 
     def __init__(self, model, batch_size, learning_rate=1e-3):
         super().__init__()
-        self.save_hyperparameters()
 
         self.model = model
         self.learning_rate = learning_rate
@@ -37,8 +36,9 @@ class GraphWrapper(pl.LightningModule):
 
     def _compute_loss(self, batch):
         input_graph, target = batch
-        preds = self.model(input_graph)
-        return torch.nn.functional.mse_loss(preds, target)
+        preds = self.model(input_graph.x, input_graph.edge_attr,
+                           input_graph.edge_index)
+        return torch.nn.functional.mse_loss(preds, torch.flatten(target, 0, 1))
 
     def configure_optimizers(self):
         """Wrap the optimizer into a pl optimizer. """

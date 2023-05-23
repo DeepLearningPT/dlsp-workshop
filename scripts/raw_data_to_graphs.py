@@ -1,5 +1,4 @@
 """Converts the raw data to graphs and their prediction targets."""
-
 import os
 
 from absl import app
